@@ -185,8 +185,6 @@
               <tbody></tbody>
             </table>
           </div>
-
-          <p class="hint">* Os serviços cadastrados aparecem automaticamente na tela de agendamento.</p>
         </div>
       </section>
 
@@ -241,12 +239,16 @@
 
           <label class="field">
             <span>Horário</span>
-            <input type="text" id="apptTime" readonly />
+            <select id="apptTime" class="field" required>
+                <option value="">selecione<option>
+            </select>
           </label>
 
           <label class="field">
             <span>Barbeiro</span>
-            <input type="text" id="apptBarber" readonly />
+            <select id="apptBarber" class="field" required>
+                <option value="">selecione<option>
+            </select>
           </label>
 
           <label class="field">
@@ -272,7 +274,7 @@
         <div class="grid2">
           <label class="field">
             <span>Cliente cadastrado</span>
-            <select id="apptClientSelect"></select>
+            <select id="apptClient"></select>
           </label>
 
           <div class="field">

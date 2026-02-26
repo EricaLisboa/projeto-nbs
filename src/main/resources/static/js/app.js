@@ -32,8 +32,12 @@ function todayISO(){
   return `${yyyy}-${mm}-${dd}`;
 }
 function readLS(key, fallback){
-  try { return JSON.parse(localStorage.getItem(key)) ?? fallback; }
-  catch { return fallback; }
+  try {const raw = localStorage.getItem(key);
+    return raw ? JSON.parse(raw) : fallback;
+  } 
+  catch {
+    return fallback;
+  }
 }
 function writeLS(key, data){ localStorage.setItem(key, JSON.stringify(data)); }
 function uid(){ return Math.random().toString(16).slice(2) + Date.now().toString(16); }
@@ -95,6 +99,49 @@ function setupAdmin(){
   const filterBarber = document.getElementById("filter-barber");
   const agendaGrid   = document.getElementById("agenda-grid");
 
+  // ===== MODAL AGENDAMENTO (ELEMENTS) =====
+const apptDate   = document.getElementById("apptDate");
+const apptTime   = document.getElementById("apptTime");
+const apptBarber = document.getElementById("apptBarber");
+const apptClient = document.getElementById("apptClient");
+const apptService= document.getElementById("apptService");
+const apptPay    = document.getElementById("apptPayment");
+const apptStatus = document.getElementById("apptStatus");
+
+const btnSaveAppt = document.getElementById("btnSaveAppt");
+
+console.log("btnSaveAppt existe?", btnSaveAppt);
+
+btnSaveAppt?.addEventListener("click", (e) => {
+  console.log("CLICOU CONFIRMAR ✅");
+});
+
+if (btnSaveAppt) {
+  btnSaveAppt.addEventListener("click", (e) => {
+    e.preventDefault();
+
+    const appts = readLS(LS_APPTS, []);
+
+    const newAppt = {
+      id: crypto?.randomUUID?.() || String(Date.now()),
+      date: apptDate.value,
+      time: apptTime.value,
+      barber: apptBarber.value,
+      clientId: apptClient.value || "",
+      serviceId: apptService.value || "",
+      pay: apptPayment.value || "",
+      status: apptStatus.value || "Pendente",
+    };
+
+    appts.push(newAppt);
+    writeLS(LS_APPTS, appts);
+
+    hideModal("modalAppt");
+    refreshAgenda();
+  });
+}
+
+
   if (agendaGrid){
   agendaGrid.addEventListener("click", (e) => {
     const cell = e.target.closest(".slot-cell");
@@ -127,13 +174,17 @@ function setupAdmin(){
   const btnNewAppt = document.getElementById("btnNewAppt");
 console.log("btnNewAppt:", btnNewAppt);
 
-if (btnNewAppt) {
-  btnNewAppt.onclick = () => {
+if (btnNewAppt){
+  btnNewAppt.onclick = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+
     console.log("✅ clique no Novo Agendamento");
-    openApptModalManual();
+
+    hydrateApptForm();        // 🔥 preenche clientes, barbeiros e horários
+    openApptModalManual();    // 🔥 abre o modal
   };
 }
-
   const logoutBtn  = document.getElementById("logoutBtn");
   const pageTitle = document.getElementById("pageTitle");
   const agendaActions = document.getElementById("agendaActions");
@@ -254,6 +305,7 @@ if (btnNewAppt) {
 
     TIMES.forEach(time => {
      
+      const timeCell = document.createElement("div");   
       timeCell.className = "time-cell";
       timeCell.textContent = time;
       agendaGrid.appendChild(timeCell);
@@ -354,7 +406,7 @@ if (btnNewAppt) {
         const payment = document.getElementById("apptPayment").value;
         const status = document.getElementById("apptStatus").value;
 
-        const clientId = document.getElementById("apptClientSelect").value;
+        const clientId = document.getElementById("apptClient").value;
         const clients = readLS(LS_CLIENTS, []);
         const client = clients.find(c => c.id === clientId);
 
@@ -392,6 +444,10 @@ if (btnNewAppt) {
           status
         });
         writeLS(LS_APPTS, appts);
+
+        console.log("APPTS SALVOS:", readLS(LS_APPTS, []));
+        console.log("NOVO:", newAppt);
+
 
         hideModal("modalAppt");
         refreshAll();
@@ -763,6 +819,14 @@ function openApptModalManual(){
 
     if (!Array.isArray(readLS(LS_APPTS, null)))  writeLS(LS_APPTS, []);
     if (!Array.isArray(readLS(LS_BLOCKS, null))) writeLS(LS_BLOCKS, []);
+
+    if (!Array.isArray(readLS("barbers", null))) {
+    writeLS("barbers", [
+    { id: "lucas", name: "Lucas" },
+    { id: "noel",  name: "Noel"  }
+    ]);
+    }
+
   }
 }
 
@@ -779,6 +843,92 @@ function openApptModalManual(){
     m.classList.remove("show");
     m.setAttribute("aria-hidden","true");
   }
+  function hydrateApptForm() {
+  // ⚠️ IDs (confira se são esses mesmos no seu HTML)
+  const selClient = document.getElementById("apptClient");
+  const selBarber = document.getElementById("apptBarber");
+  const selTime   = document.getElementById("apptTime");
+
+  // Se algum select não existir, não quebra o sistema
+  // (mas não vai preencher também)
+  // console.log({ selClient, selBarber, selTime });
+
+  // =========================
+  // CLIENTES
+  // =========================
+  if (selClient) {
+    // tenta chaves mais comuns
+    const clients =
+      (typeof LS_CLIENTS !== "undefined" ? readLS(LS_CLIENTS, null) : null) ??
+      readLS("clients", null) ??
+      readLS("clientes", null) ??
+      [];
+
+    selClient.innerHTML = `<option value="">Sem cadastro</option>`;
+
+    (Array.isArray(clients) ? clients : []).forEach((c, idx) => {
+      const opt = document.createElement("option");
+      const id = c.id ?? c.phone ?? c.telefone ?? c.email ?? c.nome ?? c.name ?? String(idx);
+      const name = c.name ?? c.nome ?? "Cliente";
+      const phone = c.phone ?? c.telefone ?? "";
+      opt.value = id;
+      opt.textContent = phone ? `${name} • ${phone}` : name;
+      selClient.appendChild(opt);
+    });
+  }
+
+  // =========================
+  // BARBEIROS
+  // =========================
+  if (selBarber) {
+    let barbers = [];
+
+    // 1) tenta array global (muito comum quando a grade usa um const BARBERS)
+    if (Array.isArray(window.BARBERS)) barbers = window.BARBERS;
+
+    // 2) tenta chave LS_BARBERS se existir
+    if (!barbers.length && typeof LS_BARBERS !== "undefined") {
+      const b = readLS(LS_BARBERS, []);
+      if (Array.isArray(b)) barbers = b;
+    }
+
+    // 3) fallback: localStorage "barbers"
+    if (!barbers.length) {
+      const b = readLS("barbers", []);
+      if (Array.isArray(b)) barbers = b;
+    }
+
+    selBarber.innerHTML = `<option value="">Selecione</option>`;
+
+    barbers.forEach((b, idx) => {
+      const opt = document.createElement("option");
+      const name = b.name ?? b.nome ?? b.title ?? b.label ?? `Barbeiro ${idx + 1}`;
+      const id = b.id ?? name;
+      opt.value = id;
+      opt.textContent = name;
+      selBarber.appendChild(opt);
+    });
+  }
+
+  // =========================
+  // HORÁRIOS
+  // =========================
+  if (selTime) {
+    const times =
+      (Array.isArray(window.TIMES) ? window.TIMES : null) ??
+      (typeof generateTimes === "function" ? generateTimes() : null) ??
+      ["09:00","10:00","11:00","12:00","14:00","15:00","16:00","17:00","18:00","19:00"];
+
+    selTime.innerHTML = `<option value="">Selecione</option>`;
+
+    (Array.isArray(times) ? times : []).forEach(t => {
+      const opt = document.createElement("option");
+      opt.value = t;
+      opt.textContent = t;
+      selTime.appendChild(opt);
+    });
+  }
+}
 
   function hydrateApptFormOptions(){
   const selBarber  = document.getElementById("apptBarber");
