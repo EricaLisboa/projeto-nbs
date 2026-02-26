@@ -1,0 +1,434 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>NBS Barbearia - Painel</title>
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body class="admin-page">
+
+  <aside class="sidebar" id="sidebar">
+    <div class="side-top">
+      <img class="side-logo" src="assets/logo-nbs.png" alt="NBS" />
+      <div class="side-title">NBS Barbearia</div>
+    </div>
+
+    <nav class="side-nav">
+      <button class="nav-item active" data-view="agenda">Agenda</button>
+      <button class="nav-item" data-view="historico">Histórico</button>
+      <button class="nav-item" data-view="caixa">Caixa</button>
+      <button class="nav-item" data-view="clientes">Clientes</button>
+      <button class="nav-item" data-view="servicos">Serviços</button>
+      <button class="nav-item" data-view="pagamentos">Forma de pagamento</button>
+      <button class="nav-item" data-view="config">Configurações</button>
+      <button class="nav-item danger" id="logoutBtn">Sair</button>
+    </nav>
+  </aside>
+
+  <div class="content">
+    <header class="topbar">
+      <div class="topbar-left">
+        <h1 id="pageTitle">Agenda</h1>
+        <div class="filters">
+          <label class="mini-field">
+            <span>Data</span>
+            <input type="date" id="filter-date" />
+          </label>
+
+          <label class="mini-field">
+            <span>Barbeiro</span>
+            <select id="filter-barber">
+              <option value="Todos">Todos</option>
+              <option value="Lucas">Lucas</option>
+              <option value="Noel">Noel</option>
+            </select>
+          </label>
+        </div>
+      </div>
+
+      <div class="topbar-actions" id="agendaActions">
+        <button class="btn btn-red" id="btnBlock">Bloquear horário</button>
+        <button class="btn btn-gold" id="btnNewAppt">+ Novo agendamento</button>
+      </div>
+    </header>
+
+    <main class="views">
+      <!-- AGENDA -->
+      <section class="view active" id="view-agenda">
+        <div class="agenda-head">
+          <div class="barber-cols">
+            <div class="barber-col">
+              <img src="assets/lucas.jpg" alt="Lucas" class="barber-avatar"/>
+              <div class="barber-name">Lucas</div>
+            </div>
+            <div class="barber-col">
+              <img src="assets/noel.jpg" alt="Noel" class="barber-avatar"/>
+              <div class="barber-name">Noel</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="agenda-grid" id="agenda-grid"></div>
+
+        <div class="legend">
+          <span class="pill">Clique em um horário vazio para agendar</span>
+          <span class="pill pill-red">Bloqueado</span>
+          <span class="pill pill-gold">Agendado</span>
+        </div>
+      </section>
+
+      <!-- HISTÓRICO -->
+      <section class="view" id="view-historico">
+        <div class="panel">
+          <div class="panel-title">Histórico</div>
+          <div class="table-wrap">
+            <table class="table" id="historyTable">
+              <thead>
+                <tr>
+                  <th>Data</th>
+                  <th>Hora</th>
+                  <th>Cliente</th>
+                  <th>Barbeiro</th>
+                  <th>Serviço</th>
+                  <th>Pagamento</th>
+                  <th>Valor</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- CAIXA -->
+      <section class="view" id="view-caixa">
+        <div class="panel">
+          <div class="panel-title">Caixa</div>
+          <div class="cards">
+            <div class="kpi">
+              <div class="kpi-label">Total do dia</div>
+              <div class="kpi-value" id="kpiTotalDia">R$ 0,00</div>
+            </div>
+            <div class="kpi">
+              <div class="kpi-label">Cortes do dia</div>
+              <div class="kpi-value" id="kpiCortesDia">0</div>
+            </div>
+            <div class="kpi">
+              <div class="kpi-label">Clientes do dia</div>
+              <div class="kpi-value" id="kpiClientesDia">0</div>
+            </div>
+          </div>
+
+          <div class="panel-sub">Lançamentos (baseado nos agendamentos do dia)</div>
+          <div class="table-wrap">
+            <table class="table" id="cashTable">
+              <thead>
+                <tr>
+                  <th>Hora</th>
+                  <th>Cliente</th>
+                  <th>Barbeiro</th>
+                  <th>Serviço</th>
+                  <th>Pagamento</th>
+                  <th>Valor</th>
+                </tr>
+              </thead>
+              <tbody></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- CLIENTES -->
+      <section class="view" id="view-clientes">
+        <div class="panel">
+          <div class="panel-title-row">
+            <div class="panel-title">Clientes</div>
+            <button class="btn btn-gold" id="btnNewClient">+ Novo cliente</button>
+          </div>
+
+          <div class="table-wrap">
+            <table class="table" id="clientsTable">
+              <thead>
+                <tr>
+                  <th>Nome</th>
+                  <th>Telefone</th>
+                  <th>E-mail</th>
+                  <th>Data de nascimento</th>
+                </tr>
+              </thead>
+              <tbody></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- SERVIÇOS -->
+      <section class="view" id="view-servicos">
+        <div class="panel">
+          <div class="panel-title-row">
+            <div class="panel-title">Serviços</div>
+            <button class="btn btn-gold" id="btnAddService">+ Adicionar serviço</button>
+          </div>
+
+          <div class="table-wrap">
+            <table class="table" id="servicesTable">
+              <thead>
+                <tr>
+                  <th>Nome</th>
+                  <th>Valor</th>
+                  <th>Duração</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody></tbody>
+            </table>
+          </div>
+
+          <p class="hint">* Os serviços cadastrados aparecem automaticamente na tela de agendamento.</p>
+        </div>
+      </section>
+
+      <!-- PAGAMENTOS -->
+      <section class="view" id="view-pagamentos">
+        <div class="panel">
+          <div class="panel-title-row">
+            <div class="panel-title">Forma de pagamento</div>
+            <button class="btn btn-gold" id="btnAddPay">+ Adicionar</button>
+          </div>
+
+          <div class="chips" id="payChips"></div>
+        </div>
+      </section>
+
+      <!-- CONFIG -->
+      <section class="view" id="view-config">
+        <div class="panel">
+          <div class="panel-title">Configurações</div>
+          <div class="cards">
+            <div class="kpi">
+              <div class="kpi-label">Tema</div>
+              <div class="kpi-value">Preto & Dourado</div>
+            </div>
+            <div class="kpi">
+              <div class="kpi-label">Barbeiros</div>
+              <div class="kpi-value">Lucas • Noel</div>
+            </div>
+          </div>
+
+          <button class="btn btn-red" id="btnResetAll">Resetar dados (localStorage)</button>
+          <p class="hint">Use só se bagunçar os testes.</p>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <!-- AGENDAR -->
+  <div class="modal" id="modalAppt" aria-hidden="true">
+    <div class="modal-card">
+      <div class="modal-head">
+        <div class="modal-title">Novo agendamento</div>
+        <button class="x" data-close="modalAppt">×</button>
+      </div>
+
+      <div class="modal-body">
+        <div class="grid2">
+          <label class="field">
+            <span>Data</span>
+            <input type="date" id="apptDate" />
+          </label>
+
+          <label class="field">
+            <span>Horário</span>
+            <input type="text" id="apptTime" readonly />
+          </label>
+
+          <label class="field">
+            <span>Barbeiro</span>
+            <input type="text" id="apptBarber" readonly />
+          </label>
+
+          <label class="field">
+            <span>Serviço</span>
+            <select id="apptService"></select>
+          </label>
+
+          <label class="field">
+            <span>Pagamento</span>
+            <select id="apptPayment"></select>
+          </label>
+
+          <label class="field">
+            <span>Status</span>
+            <select id="apptStatus">
+              <option value="Pendente">Pendente</option>
+              <option value="Finalizado">Finalizado</option>
+            </select>
+          </label>
+        </div>
+
+        <div class="panel-sub" style="margin-top:12px;">Cliente</div>
+        <div class="grid2">
+          <label class="field">
+            <span>Cliente cadastrado</span>
+            <select id="apptClientSelect"></select>
+          </label>
+
+          <div class="field">
+            <span>Sem cadastro</span>
+            <button class="btn btn-dark" id="btnOpenNewClient">Cadastrar agora</button>
+          </div>
+        </div>
+
+        <p class="hint" id="apptMsg"></p>
+      </div>
+
+      <div class="modal-foot">
+        <button class="btn btn-dark" data-close="modalAppt">Cancelar</button>
+        <button class="btn btn-gold" id="btnSaveAppt">Confirmar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- BLOQUEAR -->
+  <div class="modal" id="modalBlock" aria-hidden="true">
+    <div class="modal-card">
+      <div class="modal-head">
+        <div class="modal-title">Adicionar horário bloqueado</div>
+        <button class="x" data-close="modalBlock">×</button>
+      </div>
+
+      <div class="modal-body">
+        <div class="grid2">
+          <label class="field">
+            <span>Data</span>
+            <input type="date" id="blockDate" />
+          </label>
+
+          <label class="field">
+            <span>Barbeiro</span>
+            <select id="blockBarber">
+              <option value="Lucas">Lucas</option>
+              <option value="Noel">Noel</option>
+            </select>
+          </label>
+
+          <label class="field">
+            <span>Horário</span>
+            <select id="blockTime"></select>
+          </label>
+
+          <label class="field">
+            <span>Descrição</span>
+            <input type="text" id="blockDesc" placeholder="Ex.: almoço / reunião" />
+          </label>
+        </div>
+
+        <p class="hint" id="blockMsg"></p>
+      </div>
+
+      <div class="modal-foot">
+        <button class="btn btn-dark" data-close="modalBlock">Cancelar</button>
+        <button class="btn btn-red" id="btnSaveBlock">Bloquear</button>
+      </div>
+    </div>
+  </div>
+
+  <!--NOVO CLIENTE -->
+  <div class="modal" id="modalClient" aria-hidden="true">
+    <div class="modal-card">
+      <div class="modal-head">
+        <div class="modal-title">Novo cliente</div>
+        <button class="x" data-close="modalClient">×</button>
+      </div>
+
+      <div class="modal-body">
+        <div class="grid2">
+          <label class="field">
+            <span>Nome (obrigatório)</span>
+            <input type="text" id="cName" required />
+          </label>
+
+          <label class="field">
+            <span>Telefone (obrigatório)</span>
+            <input type="text" id="cPhone" required />
+          </label>
+
+          <label class="field">
+            <span>E-mail (opcional)</span>
+            <input type="email" id="cEmail" />
+          </label>
+
+          <label class="field">
+            <span>Data de nascimento (opcional)</span>
+            <input type="date" id="cBirth" />
+          </label>
+        </div>
+        <p class="hint" id="clientMsg"></p>
+      </div>
+
+      <div class="modal-foot">
+        <button class="btn btn-dark" data-close="modalClient">Cancelar</button>
+        <button class="btn btn-gold" id="btnSaveClient">Salvar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- NOVO SERVIÇO -->
+  <div class="modal" id="modalService" aria-hidden="true">
+    <div class="modal-card">
+      <div class="modal-head">
+        <div class="modal-title">Adicionar serviço</div>
+        <button class="x" data-close="modalService">×</button>
+      </div>
+      <div class="modal-body">
+        <div class="grid2">
+          <label class="field">
+            <span>Nome</span>
+            <input type="text" id="sName" placeholder="Ex.: Corte de Cabelo" />
+          </label>
+
+          <label class="field">
+            <span>Valor (R$)</span>
+            <input type="number" id="sPrice" step="0.01" placeholder="35.00" />
+          </label>
+
+          <label class="field">
+            <span>Duração (min)</span>
+            <input type="number" id="sDur" placeholder="40" />
+          </label>
+        </div>
+        <p class="hint" id="serviceMsg"></p>
+      </div>
+      <div class="modal-foot">
+        <button class="btn btn-dark" data-close="modalService">Cancelar</button>
+        <button class="btn btn-gold" id="btnSaveService">Salvar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- NOVO PAGAMENTO -->
+  <div class="modal" id="modalPay" aria-hidden="true">
+    <div class="modal-card">
+      <div class="modal-head">
+        <div class="modal-title">Adicionar forma de pagamento</div>
+        <button class="x" data-close="modalPay">×</button>
+      </div>
+      <div class="modal-body">
+        <label class="field">
+          <span>Nome</span>
+          <input type="text" id="pName" placeholder="Ex.: Pix" />
+        </label>
+        <p class="hint" id="payMsg"></p>
+      </div>
+      <div class="modal-foot">
+        <button class="btn btn-dark" data-close="modalPay">Cancelar</button>
+        <button class="btn btn-gold" id="btnSavePay">Salvar</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="js/app.js"></script>
+</body>
+</html>

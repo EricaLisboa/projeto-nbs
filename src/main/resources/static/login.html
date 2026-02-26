@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>NBS Barbearia - Login</title>
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body class="login-page">
+  <div class="login-bg" role="img" aria-label="Fundo de barbearia"></div>
+  <div class="login-overlay"></div>
+
+  <main class="login-wrap">
+    <section class="login-card">
+      <div class="login-brand">
+        <img class="brand-logo" src="assets/logo-nbs.png" alt="Logo NBS" />
+        <div class="brand-title">NBS Barbearia</div>
+        <div class="brand-sub">Acesse sua conta</div>
+        <div class="brand-mini">Gerencie sua barbearia de forma fácil e rápida</div>
+      </div>
+
+      <form id="loginForm" class="form">
+        <label class="field">
+          <span>E-mail ou Telefone</span>
+          <div class="input-icon">
+            <span class="ico">👤</span>
+            <input id="loginUser" type="text" placeholder="E-mail ou Telefone" autocomplete="username" required />
+          </div>
+        </label>
+
+        <label class="field">
+          <span>Sua senha</span>
+          <div class="input-icon">
+            <span class="ico">🔒</span>
+            <input id="loginPass" type="password" placeholder="Sua senha" autocomplete="current-password" required />
+          </div>
+        </label>
+
+        <button class="btn btn-gold btn-lg" type="submit">Entrar</button>
+
+        <button class="link-btn" type="button" id="forgotBtn">Esqueci minha senha</button>
+        <p class="hint" id="loginMsg"></p>
+      </form>
+    </section>
+  </main>
+
+  <script src="js/app.js"></script>
+</body>
+</html>
