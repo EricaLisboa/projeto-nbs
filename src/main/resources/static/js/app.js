@@ -108,39 +108,14 @@ const apptService= document.getElementById("apptService");
 const apptPay    = document.getElementById("apptPayment");
 const apptStatus = document.getElementById("apptStatus");
 
-const btnSaveAppt = document.getElementById("btnSaveAppt");
-
-console.log("btnSaveAppt existe?", btnSaveAppt);
-
-btnSaveAppt?.addEventListener("click", (e) => {
-  console.log("CLICOU CONFIRMAR ✅");
+// Popula select de barbeiros (uma vez)
+apptBarber.innerHTML = '<option value="">Selecione</option>';
+BARBERS.forEach(b => {
+  const opt = document.createElement("option");
+  opt.value = b.name;        
+  opt.textContent = b.name; 
+  apptBarber.appendChild(opt);
 });
-
-if (btnSaveAppt) {
-  btnSaveAppt.addEventListener("click", (e) => {
-    e.preventDefault();
-
-    const appts = readLS(LS_APPTS, []);
-
-    const newAppt = {
-      id: crypto?.randomUUID?.() || String(Date.now()),
-      date: apptDate.value,
-      time: apptTime.value,
-      barber: apptBarber.value,
-      clientId: apptClient.value || "",
-      serviceId: apptService.value || "",
-      pay: apptPayment.value || "",
-      status: apptStatus.value || "Pendente",
-    };
-
-    appts.push(newAppt);
-    writeLS(LS_APPTS, appts);
-
-    hideModal("modalAppt");
-    refreshAgenda();
-  });
-}
-
 
   if (agendaGrid){
   agendaGrid.addEventListener("click", (e) => {
@@ -151,9 +126,14 @@ if (btnSaveAppt) {
     const time = cell.dataset.time;
     const barber = cell.dataset.barber;
 
-    const appt = readLS(LS_APPTS, []).find(a =>
-      a.date === date && a.time === time && a.barber === barber
-    );
+   const norm = (v) => String(v ?? "").trim().toLowerCase();
+
+const appt = readLS(LS_APPTS, []).find(a =>
+  norm(a.date) === norm(date) &&
+  norm(a.time) === norm(time) &&
+  norm(a.barber) === norm(barber)
+);
+
     if (appt){
       openApptDetails(appt);
       return;
@@ -234,8 +214,8 @@ if (btnNewAppt){
   }
 
   document.addEventListener("click", (e) => {
-    const closeId = e.target?.getAttribute?.("data-close");
-    if (closeId) hideModal(closeId);
+    const el = e.target.closest("[data-close]");
+    if (el) hideModal(el.getAttribute("data-close"));
   });
 
   if (btnBlock) btnBlock.addEventListener("click", () => openBlockModal());
@@ -303,27 +283,40 @@ if (btnNewAppt){
   function buildAgendaGrid(date){
     agendaGrid.innerHTML = "";
 
+    const f = filterBarber?.value || "Todos";
+    const activeBarbers = BARBERS.filter(b => f === "Todos" || b.name === f);
+
+    // Ajusta o layout do grid para o número de colunas visíveis (Hora + Barbeiros ativos)
+    agendaGrid.style.gridTemplateColumns = `70px repeat(${activeBarbers.length}, 1fr)`;
+
+    // Ajusta o cabeçalho (fotos) para ficar lado a lado e alinhado com a grade
+    const headerCols = document.querySelector(".barber-cols");
+    if (headerCols) {
+      headerCols.style.display = "grid";
+      headerCols.style.marginLeft = "70px"; // Pula o espaço da coluna de horas
+      headerCols.style.width = "calc(100% - 70px)";
+      headerCols.style.gridTemplateColumns = `repeat(${activeBarbers.length}, 1fr)`;
+    }
+
+    // Atualiza visibilidade dos cabeçalhos (fotos dos barbeiros)
+    document.querySelectorAll(".barber-col").forEach(col => {
+      const name = col.querySelector(".barber-name")?.textContent?.trim();
+      if (f === "Todos" || name === f) col.style.display = "block";
+      else col.style.display = "none";
+    });
+
     TIMES.forEach(time => {
-     
       const timeCell = document.createElement("div");   
       timeCell.className = "time-cell";
       timeCell.textContent = time;
       agendaGrid.appendChild(timeCell);
 
-      BARBERS.forEach(b => {
-        const f = filterBarber?.value || "Todos";
-        const hiddenByFilter = (f !== "Todos" && b.name !== f);
-
+      activeBarbers.forEach(b => {
         const cell = document.createElement("div");
         cell.className = "slot-cell";
         cell.id = cellId(date, time, b.name);
         cell.dataset.time = time;
         cell.dataset.barber = b.name;
-
-        if (hiddenByFilter){
-          cell.style.display = "none";
-        }
-
         agendaGrid.appendChild(cell);
       });
     });
@@ -446,11 +439,16 @@ if (btnNewAppt){
         writeLS(LS_APPTS, appts);
 
         console.log("APPTS SALVOS:", readLS(LS_APPTS, []));
-        console.log("NOVO:", newAppt);
+        
+        msg.style.color = "#28a745";
+        msg.textContent = "Agendamento realizado com sucesso!";
 
-
-        hideModal("modalAppt");
-        refreshAll();
+        setTimeout(() => {
+          hideModal("modalAppt");
+          refreshAll();
+          msg.textContent = "";
+          msg.style.color = "";
+        }, 1000);
       });
     }
 
@@ -512,14 +510,21 @@ if (btnNewAppt){
         clients.push(newC);
         writeLS(LS_CLIENTS, clients);
 
-        hideModal("modalClient");
-        refreshAll();
+        msg.style.color = "#28a745"; // Verde para sucesso
+        msg.textContent = "Cliente cadastrado com sucesso!";
 
-        const pending = window.__pendingAppt;
-        if (pending){
-          setTimeout(() => openApptModal(pending), 150);
-          window.__pendingAppt = null;
-        }
+        setTimeout(() => {
+          hideModal("modalClient");
+          refreshAll();
+          msg.textContent = "";
+          msg.style.color = "";
+
+          const pending = window.__pendingAppt;
+          if (pending){
+            setTimeout(() => openApptModal(pending), 150);
+            window.__pendingAppt = null;
+          }
+        }, 1000);
       });
     }
 
@@ -838,11 +843,17 @@ function openApptModalManual(){
   }
   
   function hideModal(id){
-    const m = document.getElementById(id);
-    if (!m) return;
-    m.classList.remove("show");
-    m.setAttribute("aria-hidden","true");
+  const el = document.getElementById(id);
+
+  if (el && el.contains(document.activeElement)) {
+    document.activeElement.blur();
   }
+
+  el.classList.remove("open"); // ou seu jeito de esconder
+  el.classList.remove("show"); // ou seu jeito de esconder
+  el.setAttribute("aria-hidden", "true");
+}
+
   function hydrateApptForm() {
   // ⚠️ IDs (confira se são esses mesmos no seu HTML)
   const selClient = document.getElementById("apptClient");
@@ -947,7 +958,7 @@ function openApptModalManual(){
     "17:00","17:30","18:00","18:30","19:00"
   ];
 
-  function fillSelect(selectEl, items, placeholder="Selecione..."){
+  function fillSelect(selectEl, items, placeholder="Selecione...", useName=false){
     if (!selectEl) return;
     selectEl.innerHTML = "";
 
@@ -958,13 +969,13 @@ function openApptModalManual(){
 
     items.forEach(it => {
       const opt = document.createElement("option");
-      opt.value = it.id || it.name || it;
+      opt.value = useName ? (it.name || it) : (it.id || it.name || it);
       opt.textContent = it.name || it;
       selectEl.appendChild(opt);
     });
   }
 
-  fillSelect(selBarber, barbers, "Selecione o barbeiro");
+  fillSelect(selBarber, barbers, "Selecione o barbeiro", true);
   fillSelect(selService, services, "Selecione o serviço");
   fillSelect(selClient, clients, "Selecione o cliente");
   fillSelect(selTime, times, "Selecione o horário");
