@@ -1,14 +1,4 @@
 // ===== CONFIG =====
-const BARBERS = [
-  { name: "Lucas", photo: "assets/lucas.jpg" },
-  { name: "Noel",  photo: "assets/noel.jpg"  }
-];
-
-const TIMES = [
-  "09:00","09:30","10:00","10:30","11:00","11:30","12:00",
-  "14:00","14:30","15:00","15:30","16:00","16:30","17:00","17:30","18:00","18:30","19:00"
-];
-
 const LS_AUTH    = "nbs_admin_auth";
 const LS_APPTS   = "nbs_agendamentos";
 const LS_BLOCKS  = "nbs_bloqueios";
@@ -16,6 +6,39 @@ const LS_CLIENTS = "nbs_clientes";
 const LS_SERV    = "nbs_servicos";
 const LS_PAY     = "nbs_pagamentos";
 const LS_BARBERS = "barbers";
+const LS_CONFIG  = "nbs_config";
+
+// Carrega Configurações
+let CONFIG = readLS(LS_CONFIG, { open:"09:00", close:"19:00", interval:30 });
+
+// Carrega Barbeiros
+let BARBERS = readLS(LS_BARBERS, [
+  { id: "lucas", name: "Lucas", active: true, photo: "assets/lucas.jpg" },
+  { id: "noel",  name: "Noel",  active: true, photo: "assets/noel.jpg"  }
+]);
+
+// Gera horários baseado na configuração
+function generateTimes(){
+  const times = [];
+  let [h, m] = CONFIG.open.split(":").map(Number);
+  const [endH, endM] = CONFIG.close.split(":").map(Number);
+  const endMin = endH * 60 + endM;
+  
+  while(true){
+    const currentMin = h * 60 + m;
+    if(currentMin >= endMin) break;
+    
+    const hh = String(h).padStart(2,"0");
+    const mm = String(m).padStart(2,"0");
+    times.push(`${hh}:${mm}`);
+    
+    m += parseInt(CONFIG.interval);
+    while(m >= 60){ m -= 60; h++; }
+  }
+  return times;
+}
+
+let TIMES = generateTimes();
 
 // ===== ADMIN LOGIN =====
 const ADMIN_LOGIN = "eunoeu";
@@ -93,6 +116,7 @@ function setupLogin(){
 function setupAdmin(){
   // Defaults
   seedDefaults();
+  let confirmCallback = null;
 
   // Elements
   const filterDate   = document.getElementById("filter-date");
@@ -108,7 +132,7 @@ const apptService= document.getElementById("apptService");
 const apptPay    = document.getElementById("apptPayment");
 const apptStatus = document.getElementById("apptStatus");
 
-// Popula select de barbeiros (uma vez)
+// Popula select de barbeiros
 apptBarber.innerHTML = '<option value="">Selecione</option>';
 BARBERS.forEach(b => {
   const opt = document.createElement("option");
@@ -168,6 +192,7 @@ if (btnNewAppt){
   const logoutBtn  = document.getElementById("logoutBtn");
   const pageTitle = document.getElementById("pageTitle");
   const agendaActions = document.getElementById("agendaActions");
+  const filtersPanel = document.querySelector(".filters");
 
   const navItems = Array.from(document.querySelectorAll(".nav-item[data-view]"));
   const views = {
@@ -202,6 +227,11 @@ if (btnNewAppt){
         agendaActions.style.display = (v === "agenda") ? "flex" : "none";
       }
 
+      if (filtersPanel){
+        const hide = ["clientes", "servicos", "pagamentos", "config"].includes(v);
+        filtersPanel.style.display = hide ? "none" : "flex";
+      }
+
       refreshAll();
     });
   });
@@ -224,21 +254,73 @@ if (btnNewAppt){
   const btnAddService = document.getElementById("btnAddService");
   const btnAddPay = document.getElementById("btnAddPay");
   const btnResetAll = document.getElementById("btnResetAll");
+  const btnSaveConfig = document.getElementById("btnSaveConfig");
+  const btnAddBarber = document.getElementById("btnAddBarber");
+  const btnConfirmYes = document.getElementById("btnConfirmYes");
 
   if (btnNewClient) btnNewClient.addEventListener("click", () => openClientModal());
   if (btnAddService) btnAddService.addEventListener("click", () => openServiceModal());
   if (btnAddPay) btnAddPay.addEventListener("click", () => openPayModal());
 
+  if (btnSaveConfig){
+    btnSaveConfig.addEventListener("click", () => {
+      const msg = document.getElementById("configMsg");
+      const open = document.getElementById("cfgOpen").value;
+      const close = document.getElementById("cfgClose").value;
+      const interval = document.getElementById("cfgInterval").value;
+
+      if(!open || !close) {
+        if(msg) { msg.style.color = "#d54b4b"; msg.textContent = "Preencha os horários"; }
+        return;
+      }
+
+      CONFIG = { open, close, interval };
+      writeLS(LS_CONFIG, CONFIG);
+      
+      // Recalcula horários
+      TIMES = generateTimes();
+      
+      if(msg) {
+        msg.style.color = "#28a745";
+        msg.textContent = "Configurações salvas!";
+        setTimeout(() => { msg.textContent = ""; }, 2000);
+      }
+      refreshAll();
+    });
+  }
+
+  if (btnAddBarber){
+    btnAddBarber.addEventListener("click", () => {
+      document.getElementById("bName").value = "";
+      const msg = document.getElementById("barberMsg");
+      if(msg) msg.textContent = "";
+      showModal("modalBarber");
+    });
+  }
+
+  if (btnConfirmYes){
+    btnConfirmYes.addEventListener("click", () => {
+      if (confirmCallback) confirmCallback();
+      hideModal("modalConfirm");
+    });
+  }
+
   if (btnResetAll){
     btnResetAll.addEventListener("click", () => {
-      if (!confirm("Tem certeza que deseja apagar todos os dados salvos?")) return;
-      localStorage.removeItem(LS_APPTS);
-      localStorage.removeItem(LS_BLOCKS);
-      localStorage.removeItem(LS_CLIENTS);
-      localStorage.removeItem(LS_SERV);
-      localStorage.removeItem(LS_PAY);
-      seedDefaults();
-      refreshAll();
+      confirmCallback = () => {
+        localStorage.removeItem(LS_APPTS);
+        localStorage.removeItem(LS_BLOCKS);
+        localStorage.removeItem(LS_CLIENTS);
+        localStorage.removeItem(LS_SERV);
+        localStorage.removeItem(LS_PAY);
+        localStorage.removeItem(LS_BARBERS);
+        localStorage.removeItem(LS_CONFIG);
+        seedDefaults();
+        location.reload();
+      };
+      const txt = document.getElementById("confirmText");
+      if(txt) txt.textContent = "Tem certeza que deseja apagar todos os dados salvos?";
+      showModal("modalConfirm");
     });
   }
   wireModalActions();
@@ -268,6 +350,7 @@ if (btnNewAppt){
     renderClients();
     renderServices();
     renderPayments();
+    renderConfig();
   }
   function refreshAgenda(){
     const date = getSelectedDate();
@@ -284,7 +367,7 @@ if (btnNewAppt){
     agendaGrid.innerHTML = "";
 
     const f = filterBarber?.value || "Todos";
-    const activeBarbers = BARBERS.filter(b => f === "Todos" || b.name === f);
+    const activeBarbers = BARBERS.filter(b => (f === "Todos" || b.name === f) && b.active !== false);
 
     // Ajusta o layout do grid para o número de colunas visíveis (Hora + Barbeiros ativos)
     agendaGrid.style.gridTemplateColumns = `70px repeat(${activeBarbers.length}, 1fr)`;
@@ -377,6 +460,7 @@ if (btnNewAppt){
     const btnSaveClient = document.getElementById("btnSaveClient");
     const btnSaveService = document.getElementById("btnSaveService");
     const btnSavePay = document.getElementById("btnSavePay");
+    const btnSaveBarber = document.getElementById("btnSaveBarber");
 
     const btnOpenNewClient = document.getElementById("btnOpenNewClient");
     if (btnOpenNewClient){
@@ -572,6 +656,34 @@ if (btnNewAppt){
 
         hideModal("modalPay");
         refreshAll();
+      });
+    }
+
+    if (btnSaveBarber){
+      btnSaveBarber.addEventListener("click", () => {
+        const msg = document.getElementById("barberMsg");
+        msg.textContent = "";
+
+        const name = (document.getElementById("bName").value || "").trim();
+        if (!name){
+          msg.style.color = "#d54b4b";
+          msg.textContent = "Digite o nome do barbeiro.";
+          return;
+        }
+
+        const id = name.toLowerCase().replace(/\s+/g, "");
+        BARBERS.push({ id, name, active: true, photo: "" });
+        writeLS(LS_BARBERS, BARBERS);
+
+        msg.style.color = "#28a745";
+        msg.textContent = "Barbeiro adicionado com sucesso!";
+
+        setTimeout(() => {
+          hideModal("modalBarber");
+          refreshAll();
+          msg.textContent = "";
+          msg.style.color = "";
+        }, 1000);
       });
     }
   }
@@ -799,6 +911,60 @@ function openApptModalManual(){
     if (kCortes) kCortes.textContent = String(day.length);
     if (kClientes) kClientes.textContent = String(clientesSet.size);
   }
+
+  function renderConfig(){
+    // Horários
+    const inpOpen = document.getElementById("cfgOpen");
+    const inpClose = document.getElementById("cfgClose");
+    const inpInt = document.getElementById("cfgInterval");
+    
+    if(inpOpen) inpOpen.value = CONFIG.open;
+    if(inpClose) inpClose.value = CONFIG.close;
+    if(inpInt) inpInt.value = CONFIG.interval;
+
+    // Barbeiros
+    const tbody = document.querySelector("#tableBarbers tbody");
+    if(!tbody) return;
+    tbody.innerHTML = "";
+
+    BARBERS.forEach((b, idx) => {
+      const tr = document.createElement("tr");
+      const statusClass = b.active !== false ? "ok" : "pend";
+      const statusText = b.active !== false ? "Ativo" : "Inativo";
+      
+      tr.innerHTML = `
+        <td>${escapeHtml(b.name)}</td>
+        <td><span class="badge ${statusClass}" style="cursor:pointer" data-toggle-barber="${idx}">${statusText}</span></td>
+        <td><button class="btn btn-dark" style="padding:4px 8px; font-size:11px" data-del-barber="${idx}">Remover</button></td>
+      `;
+      tbody.appendChild(tr);
+    });
+
+    // Eventos da tabela
+    tbody.querySelectorAll("[data-toggle-barber]").forEach(el => {
+      el.addEventListener("click", () => {
+        const idx = el.getAttribute("data-toggle-barber");
+        BARBERS[idx].active = !(BARBERS[idx].active !== false);
+        writeLS(LS_BARBERS, BARBERS);
+        refreshAll();
+      });
+    });
+
+    tbody.querySelectorAll("[data-del-barber]").forEach(btn => {
+      btn.addEventListener("click", () => {
+        confirmCallback = () => {
+          const idx = btn.getAttribute("data-del-barber");
+          BARBERS.splice(idx, 1);
+          writeLS(LS_BARBERS, BARBERS);
+          refreshAll();
+        };
+        const txt = document.getElementById("confirmText");
+        if(txt) txt.textContent = "Tem certeza que deseja remover este barbeiro?";
+        showModal("modalConfirm");
+      });
+    });
+  }
+
   function seedDefaults(){
 
     if (!Array.isArray(readLS(LS_CLIENTS, null))){
@@ -827,8 +993,8 @@ function openApptModalManual(){
 
     if (!Array.isArray(readLS("barbers", null))) {
     writeLS("barbers", [
-    { id: "lucas", name: "Lucas" },
-    { id: "noel",  name: "Noel"  }
+    { id: "lucas", name: "Lucas", active: true },
+    { id: "noel",  name: "Noel",  active: true }
     ]);
     }
 
@@ -888,26 +1054,11 @@ function openApptModalManual(){
     });
   }
 
-  // =========================
   // BARBEIROS
-  // =========================
+  
   if (selBarber) {
     let barbers = [];
-
-    // 1) tenta array global (muito comum quando a grade usa um const BARBERS)
-    if (Array.isArray(window.BARBERS)) barbers = window.BARBERS;
-
-    // 2) tenta chave LS_BARBERS se existir
-    if (!barbers.length && typeof LS_BARBERS !== "undefined") {
-      const b = readLS(LS_BARBERS, []);
-      if (Array.isArray(b)) barbers = b;
-    }
-
-    // 3) fallback: localStorage "barbers"
-    if (!barbers.length) {
-      const b = readLS("barbers", []);
-      if (Array.isArray(b)) barbers = b;
-    }
+    if (Array.isArray(BARBERS)) barbers = BARBERS.filter(b => b.active !== false);
 
     selBarber.innerHTML = `<option value="">Selecione</option>`;
 
@@ -921,14 +1072,10 @@ function openApptModalManual(){
     });
   }
 
-  // =========================
   // HORÁRIOS
-  // =========================
   if (selTime) {
     const times =
-      (Array.isArray(window.TIMES) ? window.TIMES : null) ??
-      (typeof generateTimes === "function" ? generateTimes() : null) ??
-      ["09:00","10:00","11:00","12:00","14:00","15:00","16:00","17:00","18:00","19:00"];
+      (Array.isArray(TIMES) ? TIMES : [])
 
     selTime.innerHTML = `<option value="">Selecione</option>`;
 
@@ -948,15 +1095,11 @@ function openApptModalManual(){
   const selPay     = document.getElementById("apptPayment");
   const selClient  = document.getElementById("apptClient");
 
-  const barbers  = readLS(LS_BARBERS, []) || [];
+  const barbers  = BARBERS.filter(b => b.active !== false);
   const services = readLS(LS_SERV, []) || [];
   const clients  = readLS(LS_CLIENTS, []) || [];
 
-  const times = [
-    "09:00","09:30","10:00","10:30","11:00","11:30",
-    "14:00","14:30","15:00","15:30","16:00","16:30",
-    "17:00","17:30","18:00","18:30","19:00"
-  ];
+  const times = TIMES;
 
   function fillSelect(selectEl, items, placeholder="Selecione...", useName=false){
     if (!selectEl) return;

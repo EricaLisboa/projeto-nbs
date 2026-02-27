@@ -5,6 +5,14 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>NBS Barbearia - Painel</title>
   <link rel="stylesheet" href="css/style.css" />
+  <style>
+    .barber-avatar {
+      width: 80px;
+      height: 80px; 
+      object-fit: cover; 
+      border-radius: 50%; 
+    }
+  </style>
 </head>
 <body class="admin-page">
 
@@ -204,19 +212,58 @@
       <section class="view" id="view-config">
         <div class="panel">
           <div class="panel-title">Configurações</div>
-          <div class="cards">
-            <div class="kpi">
-              <div class="kpi-label">Tema</div>
-              <div class="kpi-value">Preto & Dourado</div>
+
+          <!-- Horários -->
+          <div style="margin-bottom:24px; border-bottom:1px solid var(--line); padding-bottom:24px">
+            <div class="panel-sub" style="margin-top:0; margin-bottom:12px; font-size:14px">Horário da Barbearia</div>
+            <div class="grid3" style="display:grid; grid-template-columns:repeat(auto-fit, minmax(140px,1fr)); gap:10px; align-items:end">
+              <label class="field">
+                <span>Abertura</span>
+                <input type="time" id="cfgOpen" />
+              </label>
+              <label class="field">
+                <span>Fechamento</span>
+                <input type="time" id="cfgClose" />
+              </label>
+              <label class="field">
+                <span>Duração</span>
+                <select id="cfgInterval">
+                  <option value="20">20 min</option>
+                  <option value="30">30 min</option>
+                  <option value="40">40 min</option>
+                  <option value="60">1 hora</option>
+                </select>
+              </label>
+              <button class="btn btn-gold" id="btnSaveConfig">Salvar Horários</button>
             </div>
-            <div class="kpi">
-              <div class="kpi-label">Barbeiros</div>
-              <div class="kpi-value">Lucas • Noel</div>
+            <p class="hint" id="configMsg" style="margin-top:10px; min-height:1em"></p>
+          </div>
+
+          <!-- Barbeiros -->
+          <div style="margin-bottom:24px; border-bottom:1px solid var(--line); padding-bottom:24px">
+            <div class="panel-title-row">
+              <div class="panel-sub" style="margin:0; font-size:14px">Gerenciar Barbeiros</div>
+              <button class="btn btn-dark" id="btnAddBarber" style="padding:6px 12px; font-size:12px">+ Adicionar</button>
+            </div>
+            <div class="table-wrap">
+              <table class="table" id="tableBarbers">
+                <thead>
+                  <tr>
+                    <th>Nome</th>
+                    <th>Status</th>
+                    <th style="width:50px"></th>
+                  </tr>
+                </thead>
+                <tbody></tbody>
+              </table>
             </div>
           </div>
 
-          <button class="btn btn-red" id="btnResetAll">Resetar dados (localStorage)</button>
-          <p class="hint">Use só se bagunçar os testes.</p>
+          <!-- Backup -->
+          <div>
+            <div class="panel-sub" style="margin-top:0; margin-bottom:12px; font-size:14px">Backup / Reset</div>
+            <button class="btn btn-red" id="btnResetAll">🗑 Reset geral</button>
+          </div>
         </div>
       </section>
     </main>
@@ -427,6 +474,44 @@
       <div class="modal-foot">
         <button class="btn btn-dark" data-close="modalPay">Cancelar</button>
         <button class="btn btn-gold" id="btnSavePay">Salvar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- NOVO BARBEIRO -->
+  <div class="modal" id="modalBarber" aria-hidden="true">
+    <div class="modal-card">
+      <div class="modal-head">
+        <div class="modal-title">Novo Barbeiro</div>
+        <button class="x" data-close="modalBarber">×</button>
+      </div>
+      <div class="modal-body">
+        <label class="field">
+          <span>Nome</span>
+          <input type="text" id="bName" placeholder="Ex.: João" />
+        </label>
+        <p class="hint" id="barberMsg"></p>
+      </div>
+      <div class="modal-foot">
+        <button class="btn btn-dark" data-close="modalBarber">Cancelar</button>
+        <button class="btn btn-gold" id="btnSaveBarber">Salvar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- CONFIRMACAO GENERICA -->
+  <div class="modal" id="modalConfirm" aria-hidden="true">
+    <div class="modal-card" style="width:400px">
+      <div class="modal-head">
+        <div class="modal-title">Confirmação</div>
+        <button class="x" data-close="modalConfirm">×</button>
+      </div>
+      <div class="modal-body">
+        <p id="confirmText">Tem certeza?</p>
+      </div>
+      <div class="modal-foot">
+        <button class="btn btn-dark" data-close="modalConfirm">Não</button>
+        <button class="btn btn-red" id="btnConfirmYes">Sim</button>
       </div>
     </div>
   </div>
